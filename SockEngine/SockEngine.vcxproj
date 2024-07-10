@@ -24,6 +24,7 @@
     <ProjectGuid>{b8614029-9745-4741-bbcf-2ceb50c91221}</ProjectGuid>
     <RootNamespace>GLEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>SockEngine</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -71,13 +72,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\Engines\GLEngine\GLEngine\GLEngine\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Engines\GLEngine\GLEngine\GLEngine\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Engines\SockEngine\SockEngine\SockEngine\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Engines\SockEngine\SockEngine\SockEngine\lib;$(LibraryPath)</LibraryPath>
     <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>D:\Engines\GLEngine\GLEngine\GLEngine\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Engines\GLEngine\GLEngine\GLEngine\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Engines\SockEngine\SockEngine\SockEngine\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Engines\SockEngine\SockEngine\SockEngine\lib;$(LibraryPath)</LibraryPath>
     <AllProjectIncludesArePublic>false</AllProjectIncludesArePublic>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
