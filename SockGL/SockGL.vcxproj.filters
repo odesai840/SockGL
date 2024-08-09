@@ -36,10 +36,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\shader.vert">
+    <None Include="shaders\colors.vert">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="shaders\shader.frag">
+    <None Include="shaders\colors.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="light.vert">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="light.frag">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>
