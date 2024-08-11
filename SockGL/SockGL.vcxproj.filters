@@ -42,10 +42,10 @@
     <None Include="shaders\colors.frag">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="light.vert">
+    <None Include="shaders\light.frag">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="light.frag">
+    <None Include="shaders\light.vert">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>
