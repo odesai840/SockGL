@@ -100,23 +100,24 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void processInput(GLFWwindow* window) {
-    if (Input::GetKeyDown("Escape")) {
+    if (Input::GetKeyPressed("Escape")) {
         glfwSetWindowShouldClose(window, true);
     }
 
     float cameraSpeed = static_cast<float>(5 * deltaTime);
-    if (Input::GetKeyDown("W"))
+    if (Input::GetKeyHeld("W"))
         camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (Input::GetKeyDown("A"))
+    if (Input::GetKeyHeld("A"))
         camera.ProcessKeyboard(LEFT, deltaTime);
-    if (Input::GetKeyDown("S"))
+    if (Input::GetKeyHeld("S"))
         camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (Input::GetKeyDown("D"))
+    if (Input::GetKeyHeld("D"))
         camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     Input::UpdateKeyState(key, action);
+    std::cout << key << " " << action << std::endl;
 }
 
 // glfw: whenever the mouse moves, this callback is called

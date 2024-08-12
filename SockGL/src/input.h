@@ -140,8 +140,20 @@ public:
         return keyStates[key];
     }
 
-    // returns true if specified key is pressed or held
-    static bool GetKeyDown(std::string key) {
+    // returns true when specified key is pressed
+    static bool GetKeyPressed(std::string key) {
+        int glfwKey = keyMap[key];
+        if (GetKeyState(glfwKey) == PRESSED) {
+            keyStates[glfwKey] = NONE;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    // returns true while specified key is held
+    static bool GetKeyHeld(std::string key) {
         int glfwKey = keyMap[key];
         if (GetKeyState(glfwKey) == PRESSED) {
             return true;
@@ -154,16 +166,16 @@ public:
         }
     }
 
-    // returns true while specified key is held
-    static bool GetKeyHeld(std::string key) {
-        int glfwKey = keyMap[key];
-        return GetKeyState(glfwKey) == HELD;
-    }
-
     // returns true when specified key is released
     static bool GetKeyReleased(std::string key) {
         int glfwKey = keyMap[key];
-        return GetKeyState(glfwKey) == RELEASED;
+        if (GetKeyState(glfwKey) == RELEASED) {
+            keyStates[glfwKey] = NONE;
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 };
 #endif
