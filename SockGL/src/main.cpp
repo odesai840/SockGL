@@ -11,6 +11,7 @@
 
 #include "shader.h"
 #include "camera.h"
+#include "input.h"
 
 // window settings
 const unsigned int SCR_WIDTH = 800;
@@ -99,19 +100,23 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    if (Input::GetKeyDown("Escape")) {
         glfwSetWindowShouldClose(window, true);
     }
 
     float cameraSpeed = static_cast<float>(5 * deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    if (Input::GetKeyDown("W"))
         camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    if (Input::GetKeyDown("A"))
         camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    if (Input::GetKeyDown("S"))
         camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    if (Input::GetKeyDown("D"))
         camera.ProcessKeyboard(RIGHT, deltaTime);
+}
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    Input::UpdateKeyState(key, action);
 }
 
 // glfw: whenever the mouse moves, this callback is called
@@ -202,6 +207,7 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+    glfwSetKeyCallback(window, key_callback);
 
     // set window icon
     GLFWimage images[1];
@@ -371,6 +377,7 @@ int main() {
         model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
         lightCubeShader.setMat4("model", model);
 
+        // comment the two lines below to make the light invisible
         glBindVertexArray(lightCubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
