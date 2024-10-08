@@ -288,9 +288,9 @@ int main() {
         
         // directional light
         modelShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-        modelShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+        modelShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
         modelShader.setVec3("dirLight.diffuse", 0.7f, 0.7f, 0.7f);
-        modelShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+        modelShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
         // point light
         modelShader.setVec3("pointLight.position", pointLightPosition);
         modelShader.setVec3("pointLight.ambient", 0.05f, 0.05f, 0.05f);
