@@ -37,18 +37,24 @@
     <ClInclude Include="src\input.h">
       <Filter>Engine Classes</Filter>
     </ClInclude>
+    <ClInclude Include="src\mesh.h">
+      <Filter>Engine Classes</Filter>
+    </ClInclude>
+    <ClInclude Include="src\model.h">
+      <Filter>Engine Classes</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\colors.vert">
-      <Filter>Shader Files</Filter>
-    </None>
-    <None Include="shaders\colors.frag">
-      <Filter>Shader Files</Filter>
-    </None>
     <None Include="shaders\light.frag">
       <Filter>Shader Files</Filter>
     </None>
     <None Include="shaders\light.vert">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="model.frag">
+      <Filter>Shader Files</Filter>
+    </None>
+    <None Include="model.vert">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>
