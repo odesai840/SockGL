@@ -51,10 +51,10 @@
     <None Include="shaders\light.vert">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="model.frag">
+    <None Include="shaders\model.vert">
       <Filter>Shader Files</Filter>
     </None>
-    <None Include="model.vert">
+    <None Include="shaders\model.frag">
       <Filter>Shader Files</Filter>
     </None>
   </ItemGroup>

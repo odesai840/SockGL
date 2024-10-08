@@ -261,7 +261,7 @@ int main() {
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-    Model ourModel("resources/models/backpack/backpack.obj");
+    Model ourModel("resources/models/sponza/sponza.obj");
 
     // uncomment this to draw in wireframe mode
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -285,7 +285,12 @@ int main() {
         modelShader.use();
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setFloat("material.shininess", 32.0f);
-
+        
+        // directional light
+        modelShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+        modelShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+        modelShader.setVec3("dirLight.diffuse", 0.7f, 0.7f, 0.7f);
+        modelShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
         // point light
         modelShader.setVec3("pointLight.position", pointLightPosition);
         modelShader.setVec3("pointLight.ambient", 0.05f, 0.05f, 0.05f);
@@ -304,7 +309,7 @@ int main() {
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
         modelShader.setMat4("model", model);
         ourModel.Draw(modelShader);
 
@@ -312,7 +317,7 @@ int main() {
         lightShader.use();
         lightShader.setMat4("projection", projection);
         lightShader.setMat4("view", view);
-
+        
         glBindVertexArray(lightCubeVAO);
         model = glm::mat4(1.0f);
         model = glm::translate(model, pointLightPosition);
