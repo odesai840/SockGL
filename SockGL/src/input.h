@@ -13,7 +13,26 @@ enum State {
     RELEASED
 };
 
-std::unordered_map<std::string, int> keyMap = {
+class Input {
+public:
+    // updates key states based on values passed from key callback
+    void UpdateKeyState(int key, int action);
+
+    State GetKeyState(int key);
+
+    // returns true when specified key is pressed
+    bool GetKeyPressed(std::string key);
+
+    // returns true while specified key is held
+    bool GetKeyHeld(std::string key);
+
+    // returns true when specified key is released
+    bool GetKeyReleased(std::string key);
+
+private:
+    std::unordered_map<int, State> keyStates;
+
+    std::unordered_map<std::string, int> keyMap = {
     {"Spacebar", GLFW_KEY_SPACE},
     {"'", GLFW_KEY_APOSTROPHE},
     {",", GLFW_KEY_COMMA},
@@ -114,68 +133,6 @@ std::unordered_map<std::string, int> keyMap = {
     {"RightAlt", GLFW_KEY_RIGHT_ALT},
     {"RightSuper", GLFW_KEY_RIGHT_SUPER},
     {"Menu", GLFW_KEY_MENU}
-};
-
-static std::unordered_map<int, State> keyStates;
-
-class Input {
-public:
-    // updates key states based on values passed from key callback
-    static void UpdateKeyState(int key, int action) {
-        if (action == GLFW_PRESS) {
-            keyStates[key] = PRESSED;
-        }
-        else if (action == GLFW_RELEASE) {
-            keyStates[key] = RELEASED;
-        }
-        else if (action == GLFW_REPEAT) {
-            keyStates[key] = HELD;
-        }
-        else {
-            keyStates[key] = NONE;
-        }
-    }
-
-    static State GetKeyState(int key) {
-        return keyStates[key];
-    }
-
-    // returns true when specified key is pressed
-    static bool GetKeyPressed(std::string key) {
-        int glfwKey = keyMap[key];
-        if (GetKeyState(glfwKey) == PRESSED) {
-            keyStates[glfwKey] = NONE;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    // returns true while specified key is held
-    static bool GetKeyHeld(std::string key) {
-        int glfwKey = keyMap[key];
-        if (GetKeyState(glfwKey) == PRESSED) {
-            return true;
-        }
-        else if (GetKeyState(glfwKey) == HELD) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
-
-    // returns true when specified key is released
-    static bool GetKeyReleased(std::string key) {
-        int glfwKey = keyMap[key];
-        if (GetKeyState(glfwKey) == RELEASED) {
-            keyStates[glfwKey] = NONE;
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
+    };
 };
 #endif
