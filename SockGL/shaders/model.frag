@@ -123,12 +123,20 @@ void main()
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
 
-    // phase 1: Directional lighting
+    // phase 1: directional lighting
     vec3 result = CalcDirLight(dirLight, norm, viewDir);
-    // phase 2: Point light
-    result += CalcPointLight(pointLight, norm, FragPos, viewDir);    
-    // phase 3: Spot light
-    //result += CalcSpotLight(spotLight, norm, FragPos, viewDir);    
+    // phase 2: point light
+    //result += CalcPointLight(pointLight, norm, FragPos, viewDir);
+    // phase 3: spot light
+    //result += CalcSpotLight(spotLight, norm, FragPos, viewDir);
     
-    FragColor = vec4(result, 1.0);
+    // sample the diffuse and mask textures
+    vec4 texColor = texture(material.texture_diffuse1, TexCoords);
+
+    // discard fragments with zero alpha and masked fragments for transparency
+    if (texColor.a == 0.0)
+        discard;
+
+    // output the color with calculated transparency
+    FragColor = vec4(result, texColor.a);
 }

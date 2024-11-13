@@ -10,8 +10,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <SOIL2.h>
 
 #include "shader.h"
 #include "camera.h"
@@ -69,7 +68,9 @@ void APIENTRY glDebugOutput(GLenum source,
     const void* userParam)
 {
     // ignore these non-significant error codes
-    if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+    if (id == 131169 || id == 131185 || id == 131218 || id == 131204) {
+        return;
+    }
 
     std::cout << "---------------" << std::endl;
     std::cout << "Debug message (" << id << "): " << message << std::endl;
@@ -289,9 +290,9 @@ int main() {
 
     // set window icon
     GLFWimage images[1];
-    images[0].pixels = stbi_load("resources/sockenginelogo.png", &images[0].width, &images[0].height, 0, 4);
+    images[0].pixels = SOIL_load_image("resources/sockenginelogo.png", &images[0].width, &images[0].height, 0, 4);
     glfwSetWindowIcon(window, 1, images);
-    stbi_image_free(images[0].pixels);
+    SOIL_free_image_data(images[0].pixels);
 
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -303,14 +304,12 @@ int main() {
         return -1;
     }
 
-    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    stbi_set_flip_vertically_on_load(true);
-
     // configure global opengl state
     glEnable(GL_DEPTH_TEST);
 
     // build and compile our shader program
     Shader modelShader("shaders/model.vert", "shaders/model.frag");
+    /*
     Shader lightShader("shaders/light.vert", "shaders/light.frag");
 
     float vertices[] = {
@@ -375,8 +374,9 @@ int main() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+    */
 
-    Model ourModel("resources/models/sponza/sponza.obj");
+    Model sponza("resources/models/sponza/sponza.obj");
 
     // uncomment this to draw in wireframe mode
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -446,10 +446,10 @@ int main() {
 
         // directional light
         modelShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-        modelShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+        modelShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
         modelShader.setVec3("dirLight.diffuse", 0.7f, 0.7f, 0.7f);
-        modelShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
-        // point light
+        modelShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+        /* point light
         modelShader.setVec3("pointLight.position", pointLightPosition);
         modelShader.setVec3("pointLight.ambient", 0.05f, 0.05f, 0.05f);
         modelShader.setVec3("pointLight.diffuse", 0.8f, 0.8f, 0.8f);
@@ -457,9 +457,10 @@ int main() {
         modelShader.setFloat("pointLight.constant", 1.0f);
         modelShader.setFloat("pointLight.linear", 0.09f);
         modelShader.setFloat("pointLight.quadratic", 0.032f);
+        */
 
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)mode->width / (float)mode->height, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)VIEW_WIDTH / (float)VIEW_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view", view);
@@ -469,9 +470,9 @@ int main() {
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
         modelShader.setMat4("model", model);
-        ourModel.Draw(modelShader);
+        sponza.Draw(modelShader);
 
-        // also draw the lamp object(s)
+        /* also draw the lamp object(s)
         lightShader.use();
         lightShader.setMat4("projection", projection);
         lightShader.setMat4("view", view);
@@ -484,6 +485,7 @@ int main() {
 
         // comment the line below to make light object invisible
         glDrawArrays(GL_TRIANGLES, 0, 36);
+        */
 
         // unbind framebuffer
         unbind_framebuffer();
@@ -508,8 +510,8 @@ int main() {
     }
 
     // deallocate resources
-    glDeleteVertexArrays(1, &lightCubeVAO);
-    glDeleteBuffers(1, &VBO);
+    //glDeleteVertexArrays(1, &lightCubeVAO);
+    //glDeleteBuffers(1, &VBO);
 
     // shutdown ImGui
     ImGui_ImplGlfw_Shutdown();

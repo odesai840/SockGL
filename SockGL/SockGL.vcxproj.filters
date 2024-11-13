@@ -109,7 +109,7 @@
     <ClInclude Include="include\imgui\imgui_impl_opengl3_loader.h">
       <Filter>Dependencies\ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="include\stb_image.h">
+    <ClInclude Include="include\SOIL2.h">
       <Filter>Dependencies</Filter>
     </ClInclude>
   </ItemGroup>
