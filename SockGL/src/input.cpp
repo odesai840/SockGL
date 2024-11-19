@@ -1,7 +1,7 @@
 #include "input.h"
 
 void Input::UpdateKeyState(int key, int action) {
-    if (key < 0 || key > GLFW_KEY_LAST) return; // Prevent invalid key access
+    if (key < 0 || key > GLFW_KEY_LAST) return;
     switch (action) {
     case GLFW_PRESS: keyStates[key] = PRESSED; break;
     case GLFW_RELEASE: keyStates[key] = RELEASED; break;
@@ -13,7 +13,7 @@ void Input::UpdateKeyState(int key, int action) {
 bool Input::GetKeyPressed(int key) {
     if (key < 0 || key > GLFW_KEY_LAST) return false;
     if (keyStates[key] == PRESSED) {
-        keyStates[key] = HELD;  // Transition to HELD after checking
+        keyStates[key] = HELD;
         return true;
     }
     return false;
@@ -27,7 +27,7 @@ bool Input::GetKeyHeld(int key) {
 bool Input::GetKeyReleased(int key) {
     if (key < 0 || key > GLFW_KEY_LAST) return false;
     if (keyStates[key] == RELEASED) {
-        keyStates[key] = NONE;  // Clear state after checking
+        keyStates[key] = NONE;
         return true;
     }
     return false;
