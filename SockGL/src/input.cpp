@@ -1,55 +1,34 @@
 #include "input.h"
 
 void Input::UpdateKeyState(int key, int action) {
-    if (action == GLFW_PRESS) {
-        keyStates[key] = PRESSED;
-    }
-    else if (action == GLFW_RELEASE) {
-        keyStates[key] = RELEASED;
-    }
-    else if (action == GLFW_REPEAT) {
-        keyStates[key] = HELD;
-    }
-    else {
-        keyStates[key] = NONE;
+    if (key < 0 || key > GLFW_KEY_LAST) return; // Prevent invalid key access
+    switch (action) {
+    case GLFW_PRESS: keyStates[key] = PRESSED; break;
+    case GLFW_RELEASE: keyStates[key] = RELEASED; break;
+    case GLFW_REPEAT: keyStates[key] = HELD; break;
+    default: keyStates[key] = NONE; break;
     }
 }
 
-State Input::GetKeyState(int key) {
-    return keyStates[key];
+bool Input::GetKeyPressed(int key) {
+    if (key < 0 || key > GLFW_KEY_LAST) return false;
+    if (keyStates[key] == PRESSED) {
+        keyStates[key] = HELD;  // Transition to HELD after checking
+        return true;
+    }
+    return false;
 }
 
-bool Input::GetKeyPressed(std::string key) {
-    int glfwKey = keyMap[key];
-    if (GetKeyState(glfwKey) == PRESSED) {
-        keyStates[glfwKey] = NONE;
-        return true;
-    }
-    else {
-        return false;
-    }
+bool Input::GetKeyHeld(int key) {
+    if (key < 0 || key > GLFW_KEY_LAST) return false;
+    return keyStates[key] == PRESSED || keyStates[key] == HELD;
 }
 
-bool Input::GetKeyHeld(std::string key) {
-    int glfwKey = keyMap[key];
-    if (GetKeyState(glfwKey) == PRESSED) {
+bool Input::GetKeyReleased(int key) {
+    if (key < 0 || key > GLFW_KEY_LAST) return false;
+    if (keyStates[key] == RELEASED) {
+        keyStates[key] = NONE;  // Clear state after checking
         return true;
     }
-    else if (GetKeyState(glfwKey) == HELD) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
-bool Input::GetKeyReleased(std::string key) {
-    int glfwKey = keyMap[key];
-    if (GetKeyState(glfwKey) == RELEASED) {
-        keyStates[glfwKey] = NONE;
-        return true;
-    }
-    else {
-        return false;
-    }
+    return false;
 }

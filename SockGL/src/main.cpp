@@ -114,21 +114,21 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
 void processInput(GLFWwindow* window) {
     if (!freezeInput) {
         cameraSpeed = static_cast<float>(5 * deltaTime);
-        if (input.GetKeyHeld("W")) {
+        if (input.GetKeyHeld(GLFW_KEY_W)) {
             camera.ProcessKeyboard(FORWARD, deltaTime);
         }
-        if (input.GetKeyHeld("A")) {
+        if (input.GetKeyHeld(GLFW_KEY_A)) {
             camera.ProcessKeyboard(LEFT, deltaTime);
         }
-        if (input.GetKeyHeld("S")) {
+        if (input.GetKeyHeld(GLFW_KEY_S)) {
             camera.ProcessKeyboard(BACKWARD, deltaTime);
         }
-        if (input.GetKeyHeld("D")) {
+        if (input.GetKeyHeld(GLFW_KEY_D)) {
             camera.ProcessKeyboard(RIGHT, deltaTime);
         }
     }
 
-    if (input.GetKeyPressed("Escape")) {
+    if (input.GetKeyPressed(GLFW_KEY_ESCAPE)) {
         freezeInput = !freezeInput;
         if (captureMouse) {
             captureMouse = false;
