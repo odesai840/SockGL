@@ -1,10 +1,11 @@
 #include <iostream>
+#include <set>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
 
-#include <glad/glad.h>
+#include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,6 +17,11 @@
 #include "camera.h"
 #include "input.h"
 #include "model.h"
+
+// debugging
+std::set<unsigned int> debugLogs;
+bool debugNormals = false;
+bool debugSpec = false;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -36,8 +42,8 @@ float lastFrame = 0.0f;
 // viewport
 GLuint VIEW_WIDTH = 800;
 GLint VIEW_HEIGHT = 600;
-GLuint FBO; // frame buffer object
-GLuint RBO; // rendering buffer object
+GLuint viewportFBO; // viewportframe buffer object
+GLuint viewportRBO; // viewport render buffer object
 GLuint texture_id; // the texture id to create a texture
 
 GLenum glCheckError_(const char* file, int line) {
@@ -71,6 +77,13 @@ void APIENTRY glDebugOutput(GLenum source,
     if (id == 131169 || id == 131185 || id == 131218 || id == 131204) {
         return;
     }
+    
+    // Check if the message ID has already been logged
+    if (debugLogs.find(id) != debugLogs.end())
+        return; // Skip if already logged
+
+    // Add the current message ID to the set
+    debugLogs.insert(id);
 
     std::cout << "---------------" << std::endl;
     std::cout << "Debug message (" << id << "): " << message << std::endl;
@@ -110,10 +123,46 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
 }
 
+void processGamepadLookInput() {
+    if (glfwJoystickPresent(GLFW_JOYSTICK_1)) {
+        int axesCount;
+        const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axesCount);
+
+        if (axesCount >= 4) { // Right stick usually corresponds to axes 2 (X) and 3 (Y)
+            float rightStickX = axes[2]; // Right stick X-axis
+            float rightStickY = axes[3]; // Right stick Y-axis
+
+            // Threshold to prevent drift
+            const float deadZone = 0.2f;
+            if (std::abs(rightStickX) > deadZone || std::abs(rightStickY) > deadZone) {
+                float sensitivity = 10.0f; // Adjust this value for desired responsiveness
+
+                float xoffset = rightStickX * sensitivity;
+                float yoffset = -rightStickY * sensitivity; // Invert Y-axis to match mouse behavior
+
+                if (!freezeInput) {
+                    camera.ProcessMouseMovement(xoffset, yoffset);
+                }
+            }
+        }
+    }
+}
+
+void processGamepadZoomInput(int buttonCount, const unsigned char* buttons) {
+    if (buttonCount > 0 && buttons) {
+        if (buttons[0] == GLFW_PRESS) {
+            camera.ProcessMouseScroll(0.5f);
+        }
+        if (buttonCount > 1 && buttons[1] == GLFW_PRESS) {
+            camera.ProcessMouseScroll(-0.5f);
+        }
+    }
+}
+
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 void processInput(GLFWwindow* window) {
     if (!freezeInput) {
-        cameraSpeed = static_cast<float>(5 * deltaTime);
+        // keyboard controls
         if (input.GetKeyHeld(GLFW_KEY_W)) {
             camera.ProcessKeyboard(FORWARD, deltaTime);
         }
@@ -125,6 +174,32 @@ void processInput(GLFWwindow* window) {
         }
         if (input.GetKeyHeld(GLFW_KEY_D)) {
             camera.ProcessKeyboard(RIGHT, deltaTime);
+        }
+
+        // gamepad controls
+        if (glfwJoystickPresent(GLFW_JOYSTICK_1)) {
+            int axesCount;
+            const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axesCount);
+            int buttonCount;
+            const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &buttonCount);
+
+            if (axesCount >= 2) {
+                if (axes[1] < -0.2f) {
+                    camera.ProcessKeyboard(FORWARD, deltaTime * axes[1] * -1.0f);
+                }
+                if (axes[1] > 0.2f) {
+                    camera.ProcessKeyboard(BACKWARD, deltaTime * axes[1]);
+                }
+                if (axes[0] < -0.2f) {
+                    camera.ProcessKeyboard(LEFT, deltaTime * axes[0] * -1.0f);
+                }
+                if (axes[0] > 0.2f) {
+                    camera.ProcessKeyboard(RIGHT, deltaTime * axes[0]);
+                }
+            }
+
+            processGamepadLookInput();
+            processGamepadZoomInput(buttonCount, buttons);
         }
     }
 
@@ -180,10 +255,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 // create framebuffer and renderbuffer
-void create_framebuffer()
+void create_framebuffer(GLuint* FBO, GLuint* RBO)
 {
-    glGenFramebuffers(1, &FBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glGenFramebuffers(1, FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, *FBO);
 
     glGenTextures(1, &texture_id);
     glBindTexture(GL_TEXTURE_2D, texture_id);
@@ -192,23 +267,18 @@ void create_framebuffer()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_id, 0);
 
-    glGenRenderbuffers(1, &RBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, RBO);
+    glGenRenderbuffers(1, RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, *RBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, VIEW_WIDTH, VIEW_HEIGHT);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!\n";
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, *RBO);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
 }
 
 // bind framebuffer
-void bind_framebuffer()
+void bind_framebuffer(GLuint* FBO)
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, *FBO);
 }
 
 // unbind framebuffer
@@ -218,17 +288,21 @@ void unbind_framebuffer()
 }
 
 // rescale the buffer to allow resizing of window
-void rescale_framebuffer(float width, float height)
+void rescale_framebuffer(GLuint* FBO, GLuint* RBO, float width, float height)
 {
+    glBindFramebuffer(GL_FRAMEBUFFER, *FBO);
+
     glBindTexture(GL_TEXTURE_2D, texture_id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_id, 0);
 
-    glBindRenderbuffer(GL_RENDERBUFFER, RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, *RBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, *RBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 int main() {
@@ -237,6 +311,8 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // comment the line below in a release build
+    //glfwWindowHint(GLFW_CONTEXT_DEBUG, true);
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -273,6 +349,7 @@ int main() {
     // ImGui io and config flags
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
@@ -298,17 +375,31 @@ int main() {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
+    // enable OpenGL debug context if context allows for debug context
+    int flags; glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+    {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // makes sure errors are displayed synchronously
+        glDebugMessageCallback(glDebugOutput, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+
     // configure global opengl state
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CW);
 
     // build and compile our shader program
     Shader modelShader("shaders/model.vert", "shaders/model.frag");
+    Shader skyboxShader("shaders/skybox.vert","shaders/skybox.frag");
     /*
     Shader lightShader("shaders/light.vert", "shaders/light.frag");
 
@@ -376,12 +467,76 @@ int main() {
     glEnableVertexAttribArray(2);
     */
 
+    float skyboxVertices[] = {
+        // positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+    std::vector<std::string> skyboxFaces {
+        "resources/textures/skybox/right.bmp",
+        "resources/textures/skybox/left.bmp",
+        "resources/textures/skybox/top.bmp",
+        "resources/textures/skybox/bottom.bmp",
+        "resources/textures/skybox/front.bmp",
+        "resources/textures/skybox/back.bmp"
+    };
+    // skybox VAO
+    unsigned int skyboxVAO, skyboxVBO;
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    unsigned int cubemapTexture = Model::loadCubemap(skyboxFaces);
+
     Model sponza("resources/models/sponza/sponza.obj");
 
     // uncomment this to draw in wireframe mode
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    create_framebuffer();
+    create_framebuffer(&viewportFBO, &viewportRBO);
 
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -403,13 +558,37 @@ int main() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // render
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // setup ImGui dock space
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->WorkPos);
+        ImGui::SetNextWindowSize(viewport->WorkSize);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoNavFocus;
+        ImGui::Begin("Main Dockspace", nullptr, window_flags);
+        ImGuiID dockspace_id = ImGui::GetID("Main Dockspace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+        ImGui::End();
 
         // show stats window
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f\nRender time: %.3f ms", fps, renderTime);
+        ImGui::End();
+
+        // show debugging window
+        ImGui::Begin("Debugging");
+        if (ImGui::Checkbox("Debug Normals", &debugNormals)) {
+            if (debugNormals) {
+                debugSpec = false;
+            }
+        }
+        if (ImGui::Checkbox("Debug Specular", &debugSpec)) {
+            if (debugSpec) {
+                debugNormals = false;
+            }
+        }
         ImGui::End();
 
         // show viewport window 
@@ -418,7 +597,7 @@ int main() {
         const float window_width = ImGui::GetContentRegionAvail().x;
         const float window_height = ImGui::GetContentRegionAvail().y;
         // rescale framebuffer
-        rescale_framebuffer(window_width, window_height);
+        rescale_framebuffer(&viewportFBO, &viewportRBO, window_width, window_height);
         glViewport(0, 0, window_width, window_height);
         // get screen position of window
         ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -433,7 +612,7 @@ int main() {
         ImGui::End();
 
         // bind framebuffer
-        bind_framebuffer();
+        bind_framebuffer(&viewportFBO);
 
         // render
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -441,14 +620,16 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         modelShader.use();
+        modelShader.setBool("debugNormals", debugNormals);
+        modelShader.setBool("debugSpec", debugSpec);
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setFloat("material.shininess", 32.0f);
 
         // directional light
         modelShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-        modelShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-        modelShader.setVec3("dirLight.diffuse", 0.7f, 0.7f, 0.7f);
-        modelShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+        modelShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+        modelShader.setVec3("dirLight.diffuse", 1.0f, 1.0f, 1.0f);
+        modelShader.setVec3("dirLight.specular", 0.3f, 0.3f, 0.3f);
         /* point light
         modelShader.setVec3("pointLight.position", pointLightPosition);
         modelShader.setVec3("pointLight.ambient", 0.05f, 0.05f, 0.05f);
@@ -472,20 +653,39 @@ int main() {
         modelShader.setMat4("model", model);
         sponza.Draw(modelShader);
 
-        /* also draw the lamp object(s)
-        lightShader.use();
-        lightShader.setMat4("projection", projection);
-        lightShader.setMat4("view", view);
+        if (!debugNormals && !debugSpec) {
+            // disable culling
+            glDisable(GL_CULL_FACE);
+            /* draw the light object(s)
+            lightShader.use();
+            lightShader.setMat4("projection", projection);
+            lightShader.setMat4("view", view);
 
-        glBindVertexArray(lightCubeVAO);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, pointLightPosition);
-        model = glm::scale(model, glm::vec3(0.2f));
-        lightShader.setMat4("model", model);
+            glBindVertexArray(lightCubeVAO);
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, pointLightPosition);
+            model = glm::scale(model, glm::vec3(0.2f));
+            lightShader.setMat4("model", model);
 
-        // comment the line below to make light object invisible
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        */
+            // comment the line below to make light object invisible
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            */
+
+            // draw skybox as last
+            glDepthFunc(GL_LEQUAL); // change depth function so depth test passes when values are equal to depth buffer's content
+            skyboxShader.use();
+            view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+            skyboxShader.setMat4("view", view);
+            skyboxShader.setMat4("projection", projection);
+            // skybox cube
+            glBindVertexArray(skyboxVAO);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glBindVertexArray(0);
+            glDepthFunc(GL_LESS); // set depth function back to default
+            glEnable(GL_CULL_FACE); // re-enable culling
+        }
 
         // unbind framebuffer
         unbind_framebuffer();
@@ -517,7 +717,7 @@ int main() {
     ImGui_ImplGlfw_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
-
+    
     // glfw: terminate, clearing all previously allocated GLFW resources.
     glfwTerminate();
     return 0;
