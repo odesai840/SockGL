@@ -39,9 +39,9 @@ struct Texture {
 class Mesh {
 public:
     // mesh Data
-    std::vector<Vertex>       vertices;
+    std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture>      textures;
+    std::vector<Texture> textures;
     unsigned int VAO;
 
     // constructor
