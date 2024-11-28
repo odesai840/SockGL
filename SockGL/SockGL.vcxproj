@@ -195,8 +195,8 @@
     <ClInclude Include="src\shader.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\light.frag" />
-    <None Include="shaders\light.vert" />
+    <None Include="shaders\cube.frag" />
+    <None Include="shaders\cube.vert" />
     <None Include="shaders\model.frag" />
     <None Include="shaders\model.vert" />
     <None Include="shaders\skybox.frag" />

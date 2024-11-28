@@ -1,4 +1,5 @@
 #include <SOIL2.h>
+
 #include "model.h"
 
 void Model::Draw(Shader& shader)

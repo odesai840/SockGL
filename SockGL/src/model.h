@@ -1,8 +1,14 @@
 #ifndef MODEL_H
 #define MODEL_H
 
-#include <glad/gl.h>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+#include <map>
+#include <vector>
 
+#include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <assimp/Importer.hpp>
@@ -11,13 +17,6 @@
 
 #include "mesh.h"
 #include "shader.h"
-
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <map>
-#include <vector>
 
 class Model
 {

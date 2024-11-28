@@ -403,7 +403,7 @@ int main() {
     Shader modelShader("shaders/model.vert", "shaders/model.frag");
     Shader skyboxShader("shaders/skybox.vert","shaders/skybox.frag");
     /*
-    Shader lightShader("shaders/light.vert", "shaders/light.frag");
+    Shader lightShader("shaders/cube.vert", "shaders/cube.frag");
 
     float vertices[] = {
         // positions          // normals           // texture coords

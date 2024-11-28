@@ -1,15 +1,14 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include <glad/gl.h>
+#include <string>
+#include <vector>
 
+#include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "shader.h"
-
-#include <string>
-#include <vector>
 
 #define MAX_BONE_INFLUENCE 4
 
