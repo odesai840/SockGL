@@ -18,12 +18,13 @@ void main()
     FragPos = vec3(model * vec4(aPos, 1.0)); 
     TexCoords = aTexCoords;
 
-    vec3 T = normalize(vec3(model * vec4(aTangent, 0.0)));
-    vec3 N = normalize(vec3(model * vec4(aNormal, 0.0)));
+    mat3 normalMatrix = transpose(inverse(mat3(model)));
+    vec3 T = normalize(normalMatrix * aTangent);
+    vec3 N = normalize(normalMatrix * aNormal);
     // re-orthogonalize T with respect to N
     T = normalize(T - dot(T, N) * N);
-    // then retrieve perpendicular vector B with the cross product of T and N
-    vec3 B = cross(N, T);
+    // then retrieve perpendicular vector B with the cross product of T and N while accounting for handedness
+    vec3 B = cross(N, T) * (dot(cross(aNormal, aTangent), aBitangent) < 0.0 ? -1.0 : 1.0);
     TBN = mat3(T, B, N);
 
     gl_Position = projection * view * model * vec4(FragPos, 1.0);

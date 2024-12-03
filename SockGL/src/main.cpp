@@ -41,8 +41,8 @@ float lastFrame = 0.0f;
 
 // viewport
 GLuint VIEW_WIDTH = 800;
-GLint VIEW_HEIGHT = 600;
-GLuint viewportFBO; // viewportframe buffer object
+GLuint VIEW_HEIGHT = 600;
+GLuint viewportFBO; // viewport frame buffer object
 GLuint viewportRBO; // viewport render buffer object
 GLuint texture_id; // the texture id to create a texture
 
@@ -453,11 +453,11 @@ int main() {
     glm::vec3 pointLightPosition = glm::vec3(0.7f, 0.2f, 2.0f);
 
     // configure the light's VAO and VBO
-    unsigned int VBO, lightCubeVAO;
+    unsigned int lightCubeVBO, lightCubeVAO;
     glGenVertexArrays(1, &lightCubeVAO);
-    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &lightCubeVBO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, lightCubeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glBindVertexArray(lightCubeVAO);
@@ -535,7 +535,7 @@ int main() {
 
     Model sponza("resources/models/sponza/sponza.obj");
 
-    // uncomment this to draw in wireframe mode
+    // uncomment this line to draw in wireframe mode
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     create_framebuffer(&viewportFBO, &viewportRBO);
@@ -573,12 +573,12 @@ int main() {
         ImGuiID dockspace_id = ImGui::GetID("Main Dockspace");
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
         ImGui::End();
-
+        
         // show stats window
         ImGui::Begin("Stats");
         ImGui::Text("FPS: %.1f\nRender time: %.3f ms", fps, renderTime);
         ImGui::End();
-
+        
         // show debugging window
         ImGui::Begin("Debugging");
         if (ImGui::Checkbox("Debug Normals", &debugNormals)) {
@@ -593,7 +593,7 @@ int main() {
         }
         ImGui::End();
 
-        // show viewport window 
+        // show viewport window
         ImGui::Begin("Viewport");
         // ImGui window size
         const float window_width = ImGui::GetContentRegionAvail().x;
@@ -658,21 +658,20 @@ int main() {
         if (!debugNormals && !debugSpec) {
             // disable culling
             glDisable(GL_CULL_FACE);
+
             /* draw the light object(s)
             lightShader.use();
             lightShader.setMat4("projection", projection);
             lightShader.setMat4("view", view);
-
             glBindVertexArray(lightCubeVAO);
             model = glm::mat4(1.0f);
             model = glm::translate(model, pointLightPosition);
             model = glm::scale(model, glm::vec3(0.2f));
             lightShader.setMat4("model", model);
-
             // comment the line below to make light object invisible
             glDrawArrays(GL_TRIANGLES, 0, 36);
             */
-
+            
             // draw skybox as last
             glDepthFunc(GL_LEQUAL); // change depth function so depth test passes when values are equal to depth buffer's content
             skyboxShader.use();
@@ -686,7 +685,9 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 36);
             glBindVertexArray(0);
             glDepthFunc(GL_LESS); // set depth function back to default
-            glEnable(GL_CULL_FACE); // re-enable culling
+
+            // re-enable culling
+            glEnable(GL_CULL_FACE);
         }
 
         // unbind framebuffer
@@ -713,7 +714,9 @@ int main() {
 
     // deallocate resources
     //glDeleteVertexArrays(1, &lightCubeVAO);
-    //glDeleteBuffers(1, &VBO);
+    //glDeleteBuffers(1, &lightCubeVBO);
+    glDeleteVertexArrays(1, &skyboxVAO);
+    glDeleteBuffers(1, &skyboxVBO);
 
     // shutdown ImGui
     ImGui_ImplGlfw_Shutdown();

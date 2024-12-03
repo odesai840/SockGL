@@ -127,8 +127,8 @@ void main()
     vec4 diffuseMap = texture(material.texture_diffuse1, TexCoords);
     vec4 specularMap = texture(material.texture_specular1, TexCoords);
 
-    // discard fragments with zero alpha and masked fragments for transparency
-    if (diffuseMap.a == 0.0){
+    // discard fragments with low alpha for transparency
+    if (diffuseMap.a < 0.1){
         discard;
     }
 
@@ -147,10 +147,10 @@ void main()
     //result += CalcSpotLight(spotLight, diffuseMap, specularMap, normal, viewDir, specOut);
 
     if(debugNormals) {
-        FragColor = vec4(normal, diffuseMap.a);
+        FragColor = vec4(normal, 1.0);
     }
     else if(debugSpec) {
-        FragColor = vec4(vec3(specOut), diffuseMap.a);
+        FragColor = vec4(vec3(specOut), 1.0);
     }
     else {
         // output the color with calculated transparency
