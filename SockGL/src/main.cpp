@@ -25,7 +25,6 @@ bool debugSpec = false;
 
 // camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float cameraSpeed;
 float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 
@@ -45,6 +44,19 @@ GLuint VIEW_HEIGHT = 600;
 GLuint viewportFBO; // viewport frame buffer object
 GLuint viewportRBO; // viewport render buffer object
 GLuint texture_id; // the texture id to create a texture
+
+// lighting
+glm::vec3 dirLightDir(-0.2f, -1.0f, -0.3f);
+float lightDistance = 250.0f;
+
+// shadow mapping
+const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
+unsigned int depthMapFBO;
+unsigned int depthMap;
+float shadowBias = 0.0025f;
+float near_plane = 0.1f;
+float far_plane = 500.0f;
+float orthoSize = 250.0f;
 
 GLenum glCheckError_(const char* file, int line) {
     GLenum errorCode;
@@ -305,6 +317,31 @@ void rescale_framebuffer(GLuint* FBO, GLuint* RBO, float width, float height)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void setupShadowMap(unsigned int* shadowFBO, unsigned int* depthMap, unsigned int width, unsigned int height)
+{
+    // Generate framebuffer
+    glGenFramebuffers(1, shadowFBO);
+    
+    // Create depth texture
+    glGenTextures(1, depthMap);
+    glBindTexture(GL_TEXTURE_2D, *depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
+                width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    
+    // Attach depth texture as FBO's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, *shadowFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, *depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 int main() {
     // glfw: initialize and configure
     glfwInit();
@@ -401,6 +438,7 @@ int main() {
 
     // build and compile our shader program
     Shader modelShader("shaders/model.vert", "shaders/model.frag");
+    Shader shadowMapShader("shaders/shadowmap.vert", "shaders/shadowmap.frag");
     Shader skyboxShader("shaders/skybox.vert","shaders/skybox.frag");
     /*
     Shader lightShader("shaders/cube.vert", "shaders/cube.frag");
@@ -539,6 +577,7 @@ int main() {
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     create_framebuffer(&viewportFBO, &viewportRBO);
+    setupShadowMap(&depthMapFBO, &depthMap, SHADOW_WIDTH, SHADOW_HEIGHT);
 
     // render loop
     while (!glfwWindowShouldClose(window))
@@ -591,6 +630,13 @@ int main() {
                 debugNormals = false;
             }
         }
+        ImGui::Separator();
+        ImGui::Text("Shadow Settings");
+        ImGui::SliderFloat("Shadow Bias", &shadowBias, 0.0f, 0.05f, "%.5f");
+        ImGui::SliderFloat("Near Plane", &near_plane, 0.1f, 1.0f, "%.5f");
+        ImGui::SliderFloat("Far Plane", &far_plane, 0.1f, 500.0f, "%.5f");
+        ImGui::SliderFloat("Ortho Size", &orthoSize, 1.0f, 250.0f, "%.5f");
+        ImGui::SliderFloat("Light Distance", &lightDistance, 1.0f, 250.0f, "%.5f");
         ImGui::End();
 
         // show viewport window
@@ -612,46 +658,82 @@ int main() {
             ImVec2(1, 0)
         );
         ImGui::End();
+        
+        // first render pass: render depth map from light's perspective
+        glm::mat4 lightProjection, lightView, lightSpaceMatrix;
 
-        // bind framebuffer
-        bind_framebuffer(&viewportFBO);
+        // calculate light space matrix for directional light
+        lightProjection = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, near_plane, far_plane);
+        lightView = glm::lookAt(-dirLightDir * lightDistance,
+                               glm::vec3(0.0f),
+                               glm::vec3(0.0f, 1.0f, 0.0f));
+        lightSpaceMatrix = lightProjection * lightView;
+        
+        // render to depth map
+        shadowMapShader.use();
+        shadowMapShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
+        // configure viewport to shadow map dimensions
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        
+        // adjust face culling
+        glDisable(GL_CULL_FACE);
+        
+        // Render the scene from the light's POV
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
+        shadowMapShader.setMat4("model", model);
+        sponza.Draw(shadowMapShader);
+        
+        // Reset face culling
+        glEnable(GL_CULL_FACE);
+        
+        // Reset framebuffer and viewport
+        glBindFramebuffer(GL_FRAMEBUFFER, viewportFBO);
+        glViewport(0, 0, window_width, window_height);
+
+        // second render pass: render scene normally using the generated depth map
         // render
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // don't forget to enable shader before setting uniforms
+        // enable shader before setting uniforms
         modelShader.use();
+        
+        // set lighting uniforms as before
         modelShader.setBool("debugNormals", debugNormals);
         modelShader.setBool("debugSpec", debugSpec);
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setFloat("material.shininess", 32.0f);
-
+        
         // directional light
-        modelShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+        modelShader.setVec3("dirLight.direction", dirLightDir);
         modelShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
         modelShader.setVec3("dirLight.diffuse", 1.0f, 1.0f, 1.0f);
         modelShader.setVec3("dirLight.specular", 0.3f, 0.3f, 0.3f);
-        /* point light
-        modelShader.setVec3("pointLight.position", pointLightPosition);
-        modelShader.setVec3("pointLight.ambient", 0.05f, 0.05f, 0.05f);
-        modelShader.setVec3("pointLight.diffuse", 0.8f, 0.8f, 0.8f);
-        modelShader.setVec3("pointLight.specular", 1.0f, 1.0f, 1.0f);
-        modelShader.setFloat("pointLight.constant", 1.0f);
-        modelShader.setFloat("pointLight.linear", 0.09f);
-        modelShader.setFloat("pointLight.quadratic", 0.032f);
-        */
-
+        
+        // shadow mapping uniforms
+        modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        modelShader.setFloat("shadowBias", shadowBias);
+        
+        // bind shadow map
+        glActiveTexture(GL_TEXTURE0 + 5);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
+        modelShader.setInt("shadowMap", 5);
+        
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)VIEW_WIDTH / (float)VIEW_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)window_width / (float)window_height, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view", view);
-
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));	// it's a bit too big for our scene, so scale it down
+        
+        // render the model
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
         modelShader.setMat4("model", model);
         sponza.Draw(modelShader);
 
