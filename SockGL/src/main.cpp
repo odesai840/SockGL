@@ -24,7 +24,7 @@ bool debugNormals = false;
 bool debugSpec = false;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 90.0f, 0.0f));
 float lastX = 800.0f / 2.0;
 float lastY = 600.0 / 2.0;
 
@@ -47,16 +47,16 @@ GLuint texture_id; // the texture id to create a texture
 
 // lighting
 glm::vec3 dirLightDir(-0.2f, -1.0f, -0.3f);
-float lightDistance = 250.0f;
+float lightDistance = 50000.0f;
 
 // shadow mapping
 const unsigned int SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 unsigned int depthMapFBO;
 unsigned int depthMap;
-float shadowBias = 0.0025f;
+float shadowBias = 0.00011f;
 float near_plane = 0.1f;
-float far_plane = 500.0f;
-float orthoSize = 250.0f;
+float far_plane = 100000.0f;
+float orthoSize = 3000.0f;
 
 GLenum glCheckError_(const char* file, int line) {
     GLenum errorCode;
@@ -558,7 +558,15 @@ int main() {
         "resources/textures/skybox/bottom.bmp",
         "resources/textures/skybox/front.bmp",
         "resources/textures/skybox/back.bmp"
-    };
+    };/*
+    std::vector<std::string> skyboxFaces {
+        "resources/textures/galaxy_skybox/right.png",
+        "resources/textures/galaxy_skybox/left.png",
+        "resources/textures/galaxy_skybox/top.png",
+        "resources/textures/galaxy_skybox/bottom.png",
+        "resources/textures/galaxy_skybox/front.png",
+        "resources/textures/galaxy_skybox/back.png"
+    };*/
     // skybox VAO
     unsigned int skyboxVAO, skyboxVBO;
     glGenVertexArrays(1, &skyboxVAO);
@@ -631,12 +639,8 @@ int main() {
             }
         }
         ImGui::Separator();
-        ImGui::Text("Shadow Settings");
-        ImGui::SliderFloat("Shadow Bias", &shadowBias, 0.0f, 0.05f, "%.5f");
-        ImGui::SliderFloat("Near Plane", &near_plane, 0.1f, 1.0f, "%.5f");
-        ImGui::SliderFloat("Far Plane", &far_plane, 0.1f, 500.0f, "%.5f");
-        ImGui::SliderFloat("Ortho Size", &orthoSize, 1.0f, 250.0f, "%.5f");
-        ImGui::SliderFloat("Light Distance", &lightDistance, 1.0f, 250.0f, "%.5f");
+        ImGui::Text("Camera Speed");
+        ImGui::SliderFloat("", &camera.MovementSpeed, 100.0f, 8000.0f, "%.1f");
         ImGui::End();
 
         // show viewport window
@@ -684,7 +688,7 @@ int main() {
         // Render the scene from the light's POV
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         shadowMapShader.setMat4("model", model);
         sponza.Draw(shadowMapShader);
         
@@ -725,7 +729,7 @@ int main() {
         modelShader.setInt("shadowMap", 5);
         
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)window_width / (float)window_height, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)window_width / (float)window_height, 0.1f, 50000.0f);
         glm::mat4 view = camera.GetViewMatrix();
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view", view);
@@ -733,7 +737,7 @@ int main() {
         // render the model
         model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(0.1f, 0.1f, 0.1f));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         modelShader.setMat4("model", model);
         sponza.Draw(modelShader);
 

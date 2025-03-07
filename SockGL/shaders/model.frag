@@ -57,9 +57,6 @@ uniform bool debugNormals;
 uniform bool debugSpec;
 uniform sampler2D shadowMap;
 uniform float shadowBias;
-uniform float shadowBiasMin;
-uniform float shadowBiasMax;
-uniform float shadowBiasSlope;
 
 // calculates shadow factor
 float ShadowCalculation(vec4 fragPosLightSpace)

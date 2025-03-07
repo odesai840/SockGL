@@ -17,7 +17,8 @@ uniform mat4 lightSpaceMatrix;
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos, 1.0));
+    vec4 worldPos = model * vec4(aPos, 1.0);
+    FragPos = worldPos.xyz;
     TexCoords = aTexCoords;
 
     mat3 normalMatrix = transpose(inverse(mat3(model)));
@@ -29,8 +30,8 @@ void main()
     vec3 B = cross(N, T) * (dot(cross(aNormal, aTangent), aBitangent) < 0.0 ? -1.0 : 1.0);
     TBN = mat3(T, B, N);
 
-    // Calculate fragment position in light space for shadow mapping
+    // calculate fragment position in light space for shadow mapping
     FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
 
-    gl_Position = projection * view * model * vec4(FragPos, 1.0);
+    gl_Position = projection * view * worldPos;
 }

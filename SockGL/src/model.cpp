@@ -191,14 +191,14 @@ std::vector<Texture> Model::loadMaterialTextures(const aiScene* scene, aiMateria
                     }
                 }
                 else {
-                    // Uncompressed format
+                    // uncompressed format
                     format = GL_RGBA;
                     glBindTexture(GL_TEXTURE_2D, textureID);
                     glTexImage2D(GL_TEXTURE_2D, 0, format, texture->mWidth, texture->mHeight, 0, format, GL_UNSIGNED_BYTE, texture->pcData);
                     glGenerateMipmap(GL_TEXTURE_2D);
                 }
 
-                // Set texture parameters
+                // set texture parameters
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -207,7 +207,7 @@ std::vector<Texture> Model::loadMaterialTextures(const aiScene* scene, aiMateria
                 Texture tex;
                 tex.id = textureID;
                 tex.type = typeName;
-                tex.path = str.C_Str(); // Use the texture name as the path for embedded textures
+                tex.path = str.C_Str(); // use the texture name as the path for embedded textures
                 textures.push_back(tex);
                 textures_loaded.push_back(tex);
             }
@@ -280,9 +280,23 @@ unsigned int Model::loadCubemap(std::vector<std::string> faces)
     for (unsigned int i = 0; i < faces.size(); i++)
     {
         unsigned char* data = SOIL_load_image(faces[i].c_str(), &width, &height, &nrComponents, 0);
+        GLenum format = GL_RGB;
         if (data)
         {
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+            if (nrComponents == 1) {
+                format = GL_RED;
+            }
+            else if (nrComponents == 2) {
+                format = GL_RG;
+            }
+            else if (nrComponents == 3) {
+                format = GL_RGB;
+            }
+            else if (nrComponents == 4) {
+                format = GL_RGBA;
+            }
+            
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
             SOIL_free_image_data(data);
         }
         else
